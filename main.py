@@ -80,6 +80,16 @@ if first_relevant:
             except:
                 pass
 
+            spouse_names = []
+            try:
+                spouses = associated_json['property']['/people/person/spouse_s']['values']
+                for spouse in spouses:                    
+                    spouse_names.append(spouse['property']['/people/marriage/spouse']['values'][0]['text'].encode('ascii', 'ignore'))
+            except:
+                pass
+
+            description = get_property_value(associated_json, "/common/topic/description", 'value')
+
             print person_name
             print person_dob
             print person_pob
@@ -87,7 +97,8 @@ if first_relevant:
             print person_cause_of_death
             print person_place_of_death
             print sibling_names
-
+            print spouse_names
+            print description
 
 
 
