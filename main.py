@@ -80,11 +80,15 @@ if first_relevant:
             except:
                 pass
 
-            spouse_names = []
+            spouse_details = []
             try:
                 spouses = associated_json['property']['/people/person/spouse_s']['values']
-                for spouse in spouses:                    
-                    spouse_names.append(spouse['property']['/people/marriage/spouse']['values'][0]['text'].encode('ascii', 'ignore'))
+                for spouse in spouses:
+                    spouse_name = spouse['property']['/people/marriage/spouse']['values'][0]['text']
+                    spouse_date_to = spouse['property']['/people/marriage/to']['values']
+                    spouse_date = spouse['property']['/people/marriage/from']['values'][0]['text'] + " - " + ('now' if spouse_date_to == [] else spouse_date_to[0]['text'] )
+                    spouse_location = spouse['property']['/people/marriage/location_of_ceremony']['values'][0]['text']
+                    spouse_details.append((spouse_name + " (" + spouse_date + ") @ " + spouse_location).encode('ascii', 'ignore'))
             except:
                 pass
 
@@ -97,10 +101,46 @@ if first_relevant:
             print person_cause_of_death
             print person_place_of_death
             print sibling_names
-            print spouse_names
+            print spouse_details
             print description
+        elif topic == '/book/author':
+            books_written = []
 
+            try:
+                books = associated_json['property']['/book/author/works_written']['values']
+                for book in books:
+                    books_written.append(book['text'].encode('ascii', 'ignore'))
+            except:
+                pass
 
+            book_works = []
+            try:
+                books = associated_json['property']['/book/book_subject/works']['values']
+                for book in books:
+                    book_works.append(book['text'].encode('ascii', 'ignore'))
+            except:
+                pass
+
+            influenced_people = []
+            try:
+                people = associated_json['property']['/influence/influence_node/influenced']['values']
+                for person in people:
+                    influenced_people.append(person['text'].encode('ascii', 'ignore'))
+            except:
+                pass
+
+            influenced_by_people = []
+            try: 
+                people = associated_json['property']['/influence/influence_node/influenced_by']['values']
+                for person in people:
+                    influenced_by_people.append(person['text'].encode('ascii', 'ignore'))
+            except:
+                pass
+
+            print books_written
+            print book_works
+            print influenced_people
+            print influenced_by_people
 
 
 
