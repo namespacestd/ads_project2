@@ -23,6 +23,12 @@ def get_property_value(mid_json, prop, value):
     except:
         return None
 
+def get_subproperty_node_text(node, index, field):
+    try:
+        return node['property'][index]['values'][0][field]
+    except:
+        return None
+
 api_key = "AIzaSyAbDNBtuCvq3YkvcK4xaUrqnTtaBTMl-4M"
 query = 'Bill Gates'
 service_url = 'https://www.googleapis.com/freebase/v1/search'
@@ -31,6 +37,8 @@ params = {
         'query': query,
         'key': api_key
 }
+
+
 
 relevant_topics = {
     '/people/person' : 'Person',
@@ -61,6 +69,8 @@ for result in response['result']:
     if associated_topics:
         first_relevant = current_mid
         break
+
+print associated_topics
 
 if first_relevant:
     for topic in associated_topics:
@@ -141,10 +151,48 @@ if first_relevant:
             print book_works
             print influenced_people
             print influenced_by_people
+        elif topic == '/organization/organization_founder':
+            organizations_founded = []
+            try:
+                organizations = associated_json['property']['/organization/organization_founder/organizations_founded']['values']
+                for organization in organizations:
+                    organizations_founded.append(organization['text'].encode('ascii', 'ignore'))
+            except:
+                pass
 
+            print organizations_founded
+        elif topic == '/business/board_member':
+            leadership_roles = []
+            try:
+                boards = associated_json['property']['/business/board_member/leader_of']['values']
+                for board in boards:
+                    position = {}
+                    position['organization'] = get_subproperty_node_text(board, '/organization/leadership/organization', 'text')
+                    position['role'] = get_subproperty_node_text(board, '/organization/leadership/role', 'text')
+                    position['title'] = get_subproperty_node_text(board, '/organization/leadership/title', 'text')
+                    date_from = get_subproperty_node_text(board, '/organization/leadership/from', 'text')
+                    date_to = get_subproperty_node_text(board, '/organization/leadership/to', 'text')
+                    position['dates'] = date_from + " - " + date_to
+                    leadership_roles.append(position)
+            except:
+                pass
 
+            board_membership = []
+            try: 
+                boards = associated_json['property']['/business/board_member/organization_board_memberships']['values']
+                for board in boards:
+                    position = {}
+                    position['organization'] = get_subproperty_node_text(board, '/organization/organization_board_membership/organization', 'text')
+                    position['role'] = get_subproperty_node_text(board, '/organization/organization_board_membership/role', 'text')
+                    position['title'] = get_subproperty_node_text(board, '/organization/organization_board_membership/title', 'text')
+                    date_from = get_subproperty_node_text(board, '/organization/organization_board_membership/from', 'text')
+                    date_to = get_subproperty_node_text(board, '/organization/organization_board_membership/to', 'text')
+                    position['dates'] = str(date_from) + " - " + ('now' if date_to == None else date_to)
+                    board_membership.append(position)
+            except:
+                pass
 
+            print leadership_roles
+            print board_membership
 else:
     print "No relevant queries returned."
-
-
