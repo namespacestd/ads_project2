@@ -30,7 +30,7 @@ def get_subproperty_node_text(node, index, field):
         return ""
 
 api_key = "AIzaSyAbDNBtuCvq3YkvcK4xaUrqnTtaBTMl-4M"
-query = 'NBA'
+query = 'N.Y. Knicks'
 service_url = 'https://www.googleapis.com/freebase/v1/search'
 mid_query_url = 'https://www.googleapis.com/freebase/v1/topic'
 params = {
@@ -232,6 +232,93 @@ if first_relevant:
             print championship
             print partipating_teams
             print description
+        elif topic =='/sports/professional_sports_team':
+            name = get_property_value(associated_json, '/type/object/name', 'text')
+            print name
+
+        elif topic == '/sports/sports_team':
+            name = get_property_value(associated_json, '/type/object/name', 'text')
+            sport = get_property_value(associated_json, '/sports/sports_team/sport', 'text')
+            arena = get_property_value(associated_json, '/sports/sports_team/arena_stadium', 'text')
+
+            championships = []
+            try: 
+                games = associated_json['property']['/sports/sports_team/championships']['values']
+                for game in games:
+                    championships.append(game['text'].encode('ascii', 'ignore'))
+            except:
+                pass 
+            
+            date_founded = get_property_value(associated_json, '/sports/sports_team/founded', 'text')
+            league_partipation = []
+
+            try:
+                leagues = associated_json['property']['/sports/sports_team/league']['values']
+                for league in leagues:
+                    league_partipation.append(get_subproperty_node_text(league, '/sports/sports_league_participation/league', 'text').encode('ascii', 'ignore'))
+            except:
+                pass
+
+            team_locations = []
+
+            try:
+                locations = associated_json['property']['/sports/sports_team/location']['values']
+                for location in locations:
+                    team_locations.append(location['text'].encode('ascii', 'ignore'))
+            except:
+                pass
+
+            team_coaches = []
+
+            try:
+                coaches = associated_json['property']['/sports/sports_team/coaches']['values']
+                for coach in coaches:
+                    coach_entity = {}
+                    coach_entity['name'] = get_subproperty_node_text(coach, '/sports/sports_team_coach_tenure/coach', 'text')
+                    coach_entity['position'] = get_subproperty_node_text(coach, '/sports/sports_team_coach_tenure/position', 'text')
+                    date_from = get_subproperty_node_text(coach, '/sports/sports_team_coach_tenure/from', 'text')
+                    date_to = get_subproperty_node_text(coach, '/sports/sports_team_coach_tenure/to', 'text')
+                    coach_entity['date'] = date_from + " - " + ('now' if date_to == "" else date_to)
+                    team_coaches.append(coach_entity)
+            except:
+                pass
+
+            team_roster = []
+
+            try:
+                players = associated_json['property']['/sports/sports_team/roster']['values']
+                for player in players:
+                    player_entity = {}
+                    player_entity['name'] = get_subproperty_node_text(player, '/sports/sports_team_roster/player', 'text')
+                    player_entity['position'] = []
+                    try: 
+                        positions = player['property']['/sports/sports_team_roster/position']['values']
+                        for position in positions:
+                            player_entity['position'].append(position['text'].encode('ascii', 'ignore'))
+                    except:
+                        pass
+
+                    date_from = get_subproperty_node_text(player, '/sports/sports_team_roster/from', 'text')
+                    date_to = get_subproperty_node_text(player, '/sports/sports_team_roster/to', 'text')
+                    player_entity['date'] = (date_from + " - " + ('now' if date_to == "" else date_to)).encode('ascii', 'ignore')
+                    player_entity['number'] = get_subproperty_node_text(player, '/sports/sports_team_roster/number', 'text').encode('ascii', 'ignore')
+                    team_roster.append(player_entity)
+            except:
+                pass
+
+            description = get_property_value(associated_json, "/common/topic/description", 'value')
+
+            print name
+            print sport
+            print arena
+            print championships
+            print date_founded
+            print league_partipation
+            print team_locations
+            print team_coaches
+            print team_roster
+            print description
+
 
 else:
     print "No relevant queries returned."
