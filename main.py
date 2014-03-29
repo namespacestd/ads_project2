@@ -21,16 +21,16 @@ def get_property_value(mid_json, prop, value):
         #print mid_json['property'][prop]['values'][0][value]
         return mid_json['property'][prop]['values'][0][value]
     except:
-        return None
+        return ""
 
 def get_subproperty_node_text(node, index, field):
     try:
         return node['property'][index]['values'][0][field]
     except:
-        return None
+        return ""
 
 api_key = "AIzaSyAbDNBtuCvq3YkvcK4xaUrqnTtaBTMl-4M"
-query = 'Bill Gates'
+query = 'NBA'
 service_url = 'https://www.googleapis.com/freebase/v1/search'
 mid_query_url = 'https://www.googleapis.com/freebase/v1/topic'
 params = {
@@ -71,6 +71,7 @@ for result in response['result']:
         break
 
 print associated_topics
+print first_relevant
 
 if first_relevant:
     for topic in associated_topics:
@@ -94,11 +95,12 @@ if first_relevant:
             try:
                 spouses = associated_json['property']['/people/person/spouse_s']['values']
                 for spouse in spouses:
-                    spouse_name = spouse['property']['/people/marriage/spouse']['values'][0]['text']
-                    spouse_date_to = spouse['property']['/people/marriage/to']['values']
-                    spouse_date = spouse['property']['/people/marriage/from']['values'][0]['text'] + " - " + ('now' if spouse_date_to == [] else spouse_date_to[0]['text'] )
-                    spouse_location = spouse['property']['/people/marriage/location_of_ceremony']['values'][0]['text']
-                    spouse_details.append((spouse_name + " (" + spouse_date + ") @ " + spouse_location).encode('ascii', 'ignore'))
+                    spouse_name = get_subproperty_node_text(spouse, '/people/marriage/spouse', 'text')
+                    date_from = get_subproperty_node_text(spouse, '/people/marriage/from', 'text')
+                    date_to = get_subproperty_node_text(spouse, '/people/marriage/to', 'text')
+                    spouse_date = date_from + " - " + ('now' if date_to == "" else date_to)
+                    spouse_location = get_subproperty_node_text(spouse, '/people/marriage/location_of_ceremony', 'text')
+                    spouse_details.append((spouse_name + " (" + spouse_date + ") " + ("" if spouse_location == "" else "@ " + spouse_location)).encode('ascii', 'ignore'))
             except:
                 pass
 
@@ -187,12 +189,49 @@ if first_relevant:
                     position['title'] = get_subproperty_node_text(board, '/organization/organization_board_membership/title', 'text')
                     date_from = get_subproperty_node_text(board, '/organization/organization_board_membership/from', 'text')
                     date_to = get_subproperty_node_text(board, '/organization/organization_board_membership/to', 'text')
-                    position['dates'] = str(date_from) + " - " + ('now' if date_to == None else date_to)
+                    position['dates'] = str(date_from) + " - " + ('now' if date_to == "" else date_to)
                     board_membership.append(position)
             except:
                 pass
 
             print leadership_roles
             print board_membership
+        elif topic == '/film/actor':
+            films_participation = []
+            try:
+                films = associated_json['property']['/film/actor/film']['values']
+                for film in films:
+                    film_entity = {}
+                    film_entity['character'] = get_subproperty_node_text(film, '/film/performance/character', 'text')
+                    film_entity['film_name'] = get_subproperty_node_text(film, '/film/performance/film', 'text')
+                    films_participation.append(film_entity)
+            except:
+                pass
+            print films_participation
+        elif topic == '/sports/sports_league':
+            name = get_property_value(associated_json, '/type/object/name', 'text')
+            sport = get_property_value(associated_json, '/sports/sports_league/sport', 'text')
+            slogan = get_property_value(associated_json, '/organization/organization/slogan', 'text')
+            website = get_property_value(associated_json, '/common/topic/official_website', 'text')
+            championship = get_property_value(associated_json, '/sports/sports_league/championship', 'text')
+
+            partipating_teams = []
+            try:
+                teams = associated_json['property']['/sports/sports_league/teams']['values']
+                for team in teams:
+                    partipating_teams.append(get_subproperty_node_text(team, '/sports/sports_league_participation/team', 'text'))
+            except:
+                pass
+
+            description = get_property_value(associated_json, '/common/topic/description', 'value')
+
+            print name
+            print sport
+            print slogan
+            print website
+            print championship
+            print partipating_teams
+            print description
+
 else:
     print "No relevant queries returned."
