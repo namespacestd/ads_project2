@@ -78,6 +78,8 @@ if first_relevant:
         # Entity type: Person
         #=====================
         if topic == '/people/person':
+
+            # Name, date of birth, place of birth, place of death, date of death, cause of death
             person_name           = get_property_value(associated_json, '/type/object/name', 'text')
             person_dob            = get_property_value(associated_json, '/people/person/date_of_birth', 'text')
             person_pob            = get_property_value(associated_json, '/people/person/place_of_birth', 'text')
@@ -85,6 +87,7 @@ if first_relevant:
             person_cause_of_death = get_property_value(associated_json, '/people/deceased_person/cause_of_death', 'text')
             person_place_of_death = get_property_value(associated_json, '/people/deceased_person/place_of_death', 'text')
             
+            # Siblings
             sibling_names = []
             try:
                 siblings = associated_json['property']['/people/person/sibling_s']['values']
@@ -93,6 +96,7 @@ if first_relevant:
             except:
                 pass
 
+            # Spouses
             spouse_details = []
             try:
                 spouses = associated_json['property']['/people/person/spouse_s']['values']
@@ -106,6 +110,7 @@ if first_relevant:
             except:
                 pass
 
+            # Description
             description = get_property_value(associated_json, "/common/topic/description", 'value')
 
             print person_name
@@ -122,8 +127,9 @@ if first_relevant:
         # Entity type: Author
         #=====================
         elif topic == '/book/author':
-            books_written = []
 
+            # Books
+            books_written = []
             try:
                 books = associated_json['property']['/book/author/works_written']['values']
                 for book in books:
@@ -131,39 +137,63 @@ if first_relevant:
             except:
                 pass
 
-            book_works = []
+            # Books about author
+            books_about = []
             try:
                 books = associated_json['property']['/book/book_subject/works']['values']
                 for book in books:
-                    book_works.append(book['text'].encode('ascii', 'ignore'))
+                    books_about.append(book['text'].encode('ascii', 'ignore'))
             except:
                 pass
 
-            influenced_people = []
+            # Influenced
+            influenced = []
             try:
                 people = associated_json['property']['/influence/influence_node/influenced']['values']
                 for person in people:
-                    influenced_people.append(person['text'].encode('ascii', 'ignore'))
+                    influenced.append(person['text'].encode('ascii', 'ignore'))
             except:
                 pass
 
-            influenced_by_people = []
+            # Influenced by
+            influenced_by = []
             try: 
                 people = associated_json['property']['/influence/influence_node/influenced_by']['values']
                 for person in people:
-                    influenced_by_people.append(person['text'].encode('ascii', 'ignore'))
+                    influenced_by.append(person['text'].encode('ascii', 'ignore'))
             except:
                 pass
 
             print books_written
-            print book_works
-            print influenced_people
-            print influenced_by_people
+            print books_about
+            print influenced
+            print influenced_by
+
+        #====================
+        # Entity type: Actor
+        #====================
+        elif topic == '/film/actor':
+
+            # Films
+            films_participated = []
+            try:
+                films = associated_json['property']['/film/actor/film']['values']
+                for film in films:
+                    film_entity = {}
+                    film_entity['character'] = get_property_value(film, '/film/performance/character', 'text')
+                    film_entity['film_name'] = get_property_value(film, '/film/performance/film', 'text')
+                    films_participated.append(film_entity)
+            except:
+                pass
+
+            print films_participated
 
         #=============================
         # Entity type: BusinessPerson
         #=============================
         elif topic == '/organization/organization_founder':
+
+            # Founded
             organizations_founded = []
             try:
                 organizations = associated_json['property']['/organization/organization_founder/organizations_founded']['values']
@@ -173,33 +203,37 @@ if first_relevant:
                 pass
 
             print organizations_founded
+
         elif topic == '/business/board_member':
+
+            # Leadership
             leadership_roles = []
             try:
                 boards = associated_json['property']['/business/board_member/leader_of']['values']
                 for board in boards:
                     position = {}
                     position['organization'] = get_property_value(board, '/organization/leadership/organization', 'text')
-                    position['role'] = get_property_value(board, '/organization/leadership/role', 'text')
-                    position['title'] = get_property_value(board, '/organization/leadership/title', 'text')
-                    date_from = get_property_value(board, '/organization/leadership/from', 'text')
-                    date_to = get_property_value(board, '/organization/leadership/to', 'text')
-                    position['dates'] = date_from + " - " + date_to
+                    position['role']         = get_property_value(board, '/organization/leadership/role', 'text')
+                    position['title']        = get_property_value(board, '/organization/leadership/title', 'text')
+                    date_from                = get_property_value(board, '/organization/leadership/from', 'text')
+                    date_to                  = get_property_value(board, '/organization/leadership/to', 'text')
+                    position['dates']        = date_from + " - " + date_to
                     leadership_roles.append(position)
             except:
                 pass
 
+            # Board member
             board_membership = []
             try: 
                 boards = associated_json['property']['/business/board_member/organization_board_memberships']['values']
                 for board in boards:
                     position = {}
                     position['organization'] = get_property_value(board, '/organization/organization_board_membership/organization', 'text')
-                    position['role'] = get_property_value(board, '/organization/organization_board_membership/role', 'text')
-                    position['title'] = get_property_value(board, '/organization/organization_board_membership/title', 'text')
-                    date_from = get_property_value(board, '/organization/organization_board_membership/from', 'text')
-                    date_to = get_property_value(board, '/organization/organization_board_membership/to', 'text')
-                    position['dates'] = str(date_from) + " - " + ('now' if date_to == "" else date_to)
+                    position['role']         = get_property_value(board, '/organization/organization_board_membership/role', 'text')
+                    position['title']        = get_property_value(board, '/organization/organization_board_membership/title', 'text')
+                    date_from                = get_property_value(board, '/organization/organization_board_membership/from', 'text')
+                    date_to                  = get_property_value(board, '/organization/organization_board_membership/to', 'text')
+                    position['dates']        = str(date_from) + " - " + ('now' if date_to == "" else date_to)
                     board_membership.append(position)
             except:
                 pass
@@ -207,32 +241,22 @@ if first_relevant:
             print leadership_roles
             print board_membership
 
-        #====================
-        # Entity type: Actor
-        #====================
-        elif topic == '/film/actor':
-            films_participation = []
-            try:
-                films = associated_json['property']['/film/actor/film']['values']
-                for film in films:
-                    film_entity = {}
-                    film_entity['character'] = get_property_value(film, '/film/performance/character', 'text')
-                    film_entity['film_name'] = get_property_value(film, '/film/performance/film', 'text')
-                    films_participation.append(film_entity)
-            except:
-                pass
-            print films_participation
-
         #=====================
         # Entity type: League
         #=====================
         elif topic == '/sports/sports_league':
-            name = get_property_value(associated_json, '/type/object/name', 'text')
-            sport = get_property_value(associated_json, '/sports/sports_league/sport', 'text')
-            slogan = get_property_value(associated_json, '/organization/organization/slogan', 'text')
-            website = get_property_value(associated_json, '/common/topic/official_website', 'text')
-            championship = get_property_value(associated_json, '/sports/sports_league/championship', 'text')
 
+            # Name, championship, sport, slogan, website
+            name         = get_property_value(associated_json, '/type/object/name', 'text')
+            championship = get_property_value(associated_json, '/sports/sports_league/championship', 'text')
+            sport        = get_property_value(associated_json, '/sports/sports_league/sport', 'text')
+            slogan       = get_property_value(associated_json, '/organization/organization/slogan', 'text')
+            website      = get_property_value(associated_json, '/common/topic/official_website', 'text')
+
+            # Description
+            description = get_property_value(associated_json, '/common/topic/description', 'value')
+
+            # Teams
             partipating_teams = []
             try:
                 teams = associated_json['property']['/sports/sports_league/teams']['values']
@@ -240,8 +264,6 @@ if first_relevant:
                     partipating_teams.append(get_property_value(team, '/sports/sports_league_participation/team', 'text'))
             except:
                 pass
-
-            description = get_property_value(associated_json, '/common/topic/description', 'value')
 
             print name
             print sport
@@ -255,13 +277,19 @@ if first_relevant:
         # Entity type: SportsTeam
         #=========================
         elif topic =='/sports/professional_sports_team':
+
+            # Name
             name = get_property_value(associated_json, '/type/object/name', 'text')
             print name
+
         elif topic == '/sports/sports_team':
-            name = get_property_value(associated_json, '/type/object/name', 'text')
+
+            # Name, sport, arena
+            name  = get_property_value(associated_json, '/type/object/name', 'text')
             sport = get_property_value(associated_json, '/sports/sports_team/sport', 'text')
             arena = get_property_value(associated_json, '/sports/sports_team/arena_stadium', 'text')
 
+            # Championships
             championships = []
             try: 
                 games = associated_json['property']['/sports/sports_team/championships']['values']
@@ -270,9 +298,11 @@ if first_relevant:
             except:
                 pass 
             
+            # Founded
             date_founded = get_property_value(associated_json, '/sports/sports_team/founded', 'text')
+            
+            # Leagues
             league_partipation = []
-
             try:
                 leagues = associated_json['property']['/sports/sports_team/league']['values']
                 for league in leagues:
@@ -280,8 +310,8 @@ if first_relevant:
             except:
                 pass
 
+            # Locations
             team_locations = []
-
             try:
                 locations = associated_json['property']['/sports/sports_team/location']['values']
                 for location in locations:
@@ -289,23 +319,23 @@ if first_relevant:
             except:
                 pass
 
+            # Coaches
             team_coaches = []
-
             try:
                 coaches = associated_json['property']['/sports/sports_team/coaches']['values']
                 for coach in coaches:
                     coach_entity = {}
-                    coach_entity['name'] = get_property_value(coach, '/sports/sports_team_coach_tenure/coach', 'text')
+                    coach_entity['name']     = get_property_value(coach, '/sports/sports_team_coach_tenure/coach', 'text')
                     coach_entity['position'] = get_property_value(coach, '/sports/sports_team_coach_tenure/position', 'text')
-                    date_from = get_property_value(coach, '/sports/sports_team_coach_tenure/from', 'text')
-                    date_to = get_property_value(coach, '/sports/sports_team_coach_tenure/to', 'text')
-                    coach_entity['date'] = date_from + " - " + ('now' if date_to == "" else date_to)
+                    date_from                = get_property_value(coach, '/sports/sports_team_coach_tenure/from', 'text')
+                    date_to                  = get_property_value(coach, '/sports/sports_team_coach_tenure/to', 'text')
+                    coach_entity['date']     = date_from + " - " + ('now' if date_to == "" else date_to)
                     team_coaches.append(coach_entity)
             except:
                 pass
 
+            # Roster
             team_roster = []
-
             try:
                 players = associated_json['property']['/sports/sports_team/roster']['values']
                 for player in players:
@@ -327,6 +357,7 @@ if first_relevant:
             except:
                 pass
 
+            # Description
             description = get_property_value(associated_json, "/common/topic/description", 'value')
 
             print name
