@@ -8,6 +8,7 @@ import sys
 
 search_api_url = 'https://www.googleapis.com/freebase/v1/search'
 topic_api_url  = 'https://www.googleapis.com/freebase/v1/topic'
+question_api_url = 'https://www.googleapis.com/freebase/v1/mqlread?query='
 
 relevant_topics = {
     '/people/person'                     : 'Person',
@@ -19,6 +20,11 @@ relevant_topics = {
     '/sports/sports_league'              : 'League',
     '/sports/sports_team'                : 'SportsTeam',
     '/sports/professional_sports_team'   : 'SportsTeam'
+}
+
+relevant_question_topics = {
+    '/organization/organization'         : 'Organization',
+    '/book/book'                         : 'Book',
 }
 
 #===========================================
@@ -38,6 +44,20 @@ def relevant_mid(mid):
 
     return mid_response, set(relevant_types)
 
+def relevant_question_types(mid):
+    mid_url = topic_api_url + mid + '?key=' + api_key
+    mid_response = json.loads(urllib.urlopen(mid_url).read())
+
+    values = mid_response['property']['/type/object/type']['values']
+    types = []
+
+    for t in values:
+        type_id = t['id']
+        if type_id in relevant_question_topics:
+            types.append(type_id)
+
+    return mid_response, set(types)
+
 #=============================================
 # Returns value of property in json structure
 #=============================================
@@ -56,6 +76,7 @@ def execute_query(query, api_key):
     first_relevant = None
     associated_topics = []
     associated_json = None
+    query_results = {}
 
     #=================================
     # Determine first relevant entity
@@ -114,11 +135,11 @@ def execute_query(query, api_key):
                     pass
 
                 # Description
-                description = get_property_value(associated_json, "/common/topic/description", 'value')
+                description = get_property_value(associated_json, "/common/topic/description", 'value').encode('ascii', 'ignore')
 
-                print person_name
-                print person_dob
-                print person_pob
+                query_results['name'] = person_name
+                query_results['dob'] = person_dob
+                query_results['pob'] = person_pob
                 print person_date_of_death
                 print person_cause_of_death
                 print person_place_of_death
@@ -257,7 +278,7 @@ def execute_query(query, api_key):
                 website      = get_property_value(associated_json, '/common/topic/official_website', 'text')
 
                 # Description
-                description = get_property_value(associated_json, '/common/topic/description', 'value')
+                description = get_property_value(associated_json, '/common/topic/description', 'value').encode('ascii', 'ignore')
 
                 # Teams
                 partipating_teams = []
@@ -361,7 +382,7 @@ def execute_query(query, api_key):
                     pass
 
                 # Description
-                description = get_property_value(associated_json, "/common/topic/description", 'value')
+                description = get_property_value(associated_json, "/common/topic/description", 'value').encode('ascii', 'ignore')
 
                 print name
                 print sport
@@ -376,6 +397,59 @@ def execute_query(query, api_key):
 
     else:
         print "ERROR: No relevant queries returned."
+
+def execute_question_query(query, api_key):
+    query_tokens = query.split(" ")
+    if((query_tokens[0].lower() == 'who') and (query_tokens[1].lower() == 'created')):
+        query_tokens[-1] = query_tokens[-1].replace("?", "")
+        target = " ".join(query_tokens[2:])
+
+        query_author = [{
+            "/book/author/works_written": [{
+                    "a:name": [],
+                    "name~=": target
+                }],
+                "id": [],
+                "name": [],
+                "type": "/book/author"
+        }]
+
+        authors = {}
+        question_url = question_api_url + str(query_author)
+        response = json.loads(urllib.urlopen(question_url.replace("'", '"')).read())
+
+        for element in response["result"]:
+            author = element["name"][0].encode('ascii', 'ignore')
+            titles = []
+            for title in element["/book/author/works_written"]:
+                titles.append(title["a:name"][0].encode('ascii', 'ignore'))
+            authors[author] = titles
+
+        query_organization = [{
+            "/organization/organization_founder/organizations_founded": [{
+                    "a:name": [],
+                    "name~=": target
+                }],
+                "id": [],
+                "name": [],
+                "type": "/organization/organization_founder"
+        }]
+
+        founders = {}
+        question_url = question_api_url + str(query_organization)
+        response = json.loads(urllib.urlopen(question_url.replace("'", '"')).read())
+
+        for element in response["result"]:
+            founder = element["name"][0].encode('ascii', 'ignore')
+            organizations = []
+            for title in element["/organization/organization_founder/organizations_founded"]:
+                organizations.append(title["a:name"][0].encode('ascii', 'ignore'))
+            founders[founder] = organizations
+
+        return authors, founders
+
+    else:
+        print "ERROR: Invalid question given."
 
 #==========================
 # Displays argument syntax
@@ -398,8 +472,26 @@ if(len(sys.argv) == 7):
         # Single query
         #==============
         if(sys.argv[3] == '-q'):
-            query = sys.argv[4]
-            execute_query(query, api_key)
+            if(sys.argv[6] == 'infobox'):
+                query = sys.argv[4]
+                execute_query(query, api_key)
+            elif(sys.argv[6] == 'question'):
+                query = sys.argv[4]
+                authors, founders = execute_question_query(query, api_key)
+
+                answers = []
+                for key, value in authors.iteritems():
+                    answers.append(key + " (as Author) created " + ' and '.join('<{0}>'.format(w) for w in value))
+                for key, value in founders.iteritems():
+                    answers.append(key + " (as BusinessPerson) created " + ' and '.join('<{0}>'.format(w) for w in value))
+                answers.sort()
+
+                counter = 1
+                print "\n\n\n"
+                for answer in answers:
+                    print str(counter) + ". " + answer
+                    counter+=1 
+                print "\n\n\n"
         
         #===================
         # Queries from file
