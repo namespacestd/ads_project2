@@ -6,8 +6,8 @@ import sys
 # AIzaSyAbDNBtuCvq3YkvcK4xaUrqnTtaBTMl-4M
 ###########################################
 
-search_api_url = 'https://www.googleapis.com/freebase/v1/search'
-topic_api_url  = 'https://www.googleapis.com/freebase/v1/topic'
+search_api_url   = 'https://www.googleapis.com/freebase/v1/search'
+topic_api_url    = 'https://www.googleapis.com/freebase/v1/topic'
 question_api_url = 'https://www.googleapis.com/freebase/v1/mqlread?query='
 
 relevant_topics = {
@@ -27,9 +27,9 @@ relevant_question_topics = {
     '/book/book'                         : 'Book',
 }
 
-#===========================================
-# Queries Freebase Topic API with given mid
-#===========================================
+#================================================================================
+# Queries Freebase Search API and returns node and type information of given mid
+#================================================================================
 def relevant_mid(mid):
     mid_url = topic_api_url + mid + '?key=' + api_key
     mid_response = json.loads(urllib.urlopen(mid_url).read())
@@ -44,32 +44,18 @@ def relevant_mid(mid):
 
     return mid_response, set(relevant_types)
 
-def relevant_question_types(mid):
-    mid_url = topic_api_url + mid + '?key=' + api_key
-    mid_response = json.loads(urllib.urlopen(mid_url).read())
-
-    values = mid_response['property']['/type/object/type']['values']
-    types = []
-
-    for t in values:
-        type_id = t['id']
-        if type_id in relevant_question_topics:
-            types.append(type_id)
-
-    return mid_response, set(types)
-
-#=============================================
-# Returns value of property in json structure
-#=============================================
+#============================================================
+# Returns value of given property parsed from JSON structure
+#============================================================
 def get_property_value(json, prop, val):
     try:
         return json['property'][prop]['values'][0][val]
     except:
         return ""
 
-#========================================================================
-# Queries Freebase API and returns information about top relevant result
-#========================================================================
+#==========================================================================
+# Queries Freebase Topic API and returns infobox about top relevant result
+#==========================================================================
 def execute_query(query, api_key):
     url = search_api_url + '?' + urllib.urlencode({ 'query': query, 'key': api_key })
     response = json.loads(urllib.urlopen(url).read())
@@ -398,9 +384,12 @@ def execute_query(query, api_key):
     else:
         print "ERROR: No relevant queries returned."
 
+#=========================================================
+# Queries Freebase MQLRead API and answers query question
+#=========================================================
 def execute_question_query(query, api_key):
     query_tokens = query.split(" ")
-    if((query_tokens[0].lower() == 'who') and (query_tokens[1].lower() == 'created')):
+    if query_tokens[0].lower() == 'who' and query_tokens[1].lower() == 'created':
         query_tokens[-1] = query_tokens[-1].replace("?", "")
         target = " ".join(query_tokens[2:])
 
@@ -446,7 +435,19 @@ def execute_question_query(query, api_key):
                 organizations.append(title["a:name"][0].encode('ascii', 'ignore'))
             founders[founder] = organizations
 
-        return authors, founders
+        answers = []
+        for key, value in authors.iteritems():
+            answers.append(key + " (as Author) created " + ' and '.join('<{0}>'.format(w) for w in value))
+        for key, value in founders.iteritems():
+            answers.append(key + " (as BusinessPerson) created " + ' and '.join('<{0}>'.format(w) for w in value))
+        answers.sort()
+
+        counter = 1
+        print "\n\n"
+        for answer in answers:
+            print str(counter) + ". " + answer
+            counter+=1 
+        print "\n\n"
 
     else:
         print "ERROR: Invalid question given."
@@ -463,41 +464,45 @@ def show_usage():
 #====================
 # Main program logic
 #====================
-if(len(sys.argv) == 7):
-    if(sys.argv[1] == '-key' and (sys.argv[3] == '-q' or sys.argv[3] == '-f') and sys.argv[5] == '-t' and (sys.argv[6] == 'infobox' or sys.argv[6] == 'question')):
+if len(sys.argv) == 7:
+    if sys.argv[1] == '-key' and (sys.argv[3] == '-q' or sys.argv[3] == '-f') and sys.argv[5] == '-t' and (sys.argv[6] == 'infobox' or sys.argv[6] == 'question'):
         api_key = sys.argv[2]
         mode = sys.argv[6]
 
         #==============
         # Single query
         #==============
-        if(sys.argv[3] == '-q'):
-            if(sys.argv[6] == 'infobox'):
-                query = sys.argv[4]
+        if sys.argv[3] == '-q':
+            query = sys.argv[4]
+
+            # Infobox
+            if mode == 'infobox':
                 execute_query(query, api_key)
-            elif(sys.argv[6] == 'question'):
-                query = sys.argv[4]
-                authors, founders = execute_question_query(query, api_key)
 
-                answers = []
-                for key, value in authors.iteritems():
-                    answers.append(key + " (as Author) created " + ' and '.join('<{0}>'.format(w) for w in value))
-                for key, value in founders.iteritems():
-                    answers.append(key + " (as BusinessPerson) created " + ' and '.join('<{0}>'.format(w) for w in value))
-                answers.sort()
-
-                counter = 1
-                print "\n\n\n"
-                for answer in answers:
-                    print str(counter) + ". " + answer
-                    counter+=1 
-                print "\n\n\n"
+            # Question
+            elif mode == 'question':
+                execute_question_query(query, api_key)
         
         #===================
         # Queries from file
         #===================
         else:
-            pass
+            filename = sys.argv[4]
+            try:
+                f = open(filename)
+
+                # Infobox
+                if mode == 'infobox':
+                    for query in f:
+                        execute_query(query, api_key)
+
+                # Question
+                else:
+                    for query in f:
+                        execute_question_query(query, api_key)
+
+            except IOError:
+                print "ERROR: File error."
 
     else:
         show_usage()
@@ -505,9 +510,20 @@ if(len(sys.argv) == 7):
 #===================
 # Interactive shell
 #===================
-elif(len(sys.argv) == 2):
-    if(sys.argv[1] == '-key'):
-        pass
+elif len(sys.argv) == 3:
+    if sys.argv[1] == '-key':
+        api_key = sys.argv[2]
+        while(True):
+            query = raw_input('Enter query or question: ')
+            query_words = query.split(' ')
+
+            if len(query_words) > 2:
+                if query_words[0].lower() == 'who' and query_words[1].lower() == 'created':
+                    execute_question_query(query, api_key)
+                else:
+                    execute_query(query, api_key)
+            else:
+                execute_query(query, api_key)
     else:
         show_usage()
 else:
