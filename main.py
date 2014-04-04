@@ -27,6 +27,8 @@ relevant_question_topics = {
     '/book/book'                         : 'Book',
 }
 
+table_row = " -------------------------------------------------------------------------------------------------- "
+
 #================================================================================
 # Queries Freebase Search API and returns node and type information of given mid
 #================================================================================
@@ -36,13 +38,15 @@ def relevant_mid(mid):
 
     types = mid_response['property']['/type/object/type']['values']
     relevant_types = []
+    relevant_entities = []
 
     for t in types:
         type_id = t['id']
         if type_id in relevant_topics:
             relevant_types.append(type_id)
+            relevant_entities.append(relevant_topics[type_id])
 
-    return mid_response, set(relevant_types)
+    return mid_response, set(relevant_types), set(relevant_entities)
 
 #============================================================
 # Returns value of given property parsed from JSON structure
@@ -76,10 +80,8 @@ def execute_query(query, api_key):
 
         if associated_topics:
             first_relevant = current_mid
+            query_results['relevant_entities'] = list(temp[2])
             break
-
-    print associated_topics
-    print first_relevant
 
     if first_relevant:
         for topic in associated_topics:
@@ -114,7 +116,7 @@ def execute_query(query, api_key):
                         spouse_name     = get_property_value(spouse, '/people/marriage/spouse', 'text')
                         date_from       = get_property_value(spouse, '/people/marriage/from', 'text')
                         date_to         = get_property_value(spouse, '/people/marriage/to', 'text')
-                        spouse_date     = date_from + " - " + ('now' if date_to == "" else date_to)
+                        spouse_date     = ('' if date_from == "" else (date_from + " - " + ('now' if date_to == "" else date_to)))
                         spouse_location = get_property_value(spouse, '/people/marriage/location_of_ceremony', 'text')
                         spouse_details.append((spouse_name + " (" + spouse_date + ") " + ("" if spouse_location == "" else "@ " + spouse_location)).encode('ascii', 'ignore'))
                 except:
@@ -126,12 +128,12 @@ def execute_query(query, api_key):
                 query_results['name'] = person_name
                 query_results['dob'] = person_dob
                 query_results['pob'] = person_pob
-                print person_date_of_death
-                print person_cause_of_death
-                print person_place_of_death
-                print sibling_names
-                print spouse_details
-                print description
+                query_results['dod'] = person_date_of_death
+                query_results['cod'] = person_cause_of_death
+                query_results['pod'] = person_place_of_death
+                query_results['sibling_names'] = sibling_names
+                query_results['spouse_details'] = spouse_details
+                query_results['description'] = description
 
             #=====================
             # Entity type: Author
@@ -174,10 +176,10 @@ def execute_query(query, api_key):
                 except:
                     pass
 
-                print books_written
-                print books_about
-                print influenced
-                print influenced_by
+                query_results['books_written'] = books_written
+                query_results['books_about'] = books_about
+                query_results['influenced'] = influenced
+                query_results['influenced_by'] = influenced_by
 
             #====================
             # Entity type: Actor
@@ -196,7 +198,7 @@ def execute_query(query, api_key):
                 except:
                     pass
 
-                print films_participated
+                query_results['films_participated'] = films_participated
 
             #=============================
             # Entity type: BusinessPerson
@@ -212,7 +214,7 @@ def execute_query(query, api_key):
                 except:
                     pass
 
-                print organizations_founded
+                query_results['organizations_founded'] = organizations_founded
 
             elif topic == '/business/board_member':
 
@@ -243,13 +245,13 @@ def execute_query(query, api_key):
                         position['title']        = get_property_value(board, '/organization/organization_board_membership/title', 'text')
                         date_from                = get_property_value(board, '/organization/organization_board_membership/from', 'text')
                         date_to                  = get_property_value(board, '/organization/organization_board_membership/to', 'text')
-                        position['dates']        = str(date_from) + " - " + ('now' if date_to == "" else date_to)
+                        position['dates']        = ('' if date_from == '' else (str(date_from) + " - " + ('now' if date_to == "" else date_to)))
                         board_membership.append(position)
                 except:
                     pass
 
-                print leadership_roles
-                print board_membership
+                query_results['leadership_roles'] = leadership_roles
+                query_results['board_membership'] = board_membership
 
             #=====================
             # Entity type: League
@@ -275,13 +277,13 @@ def execute_query(query, api_key):
                 except:
                     pass
 
-                print name
-                print sport
-                print slogan
-                print website
-                print championship
-                print partipating_teams
-                print description
+                query_results['name'] = name
+                query_results['sport'] = sport
+                query_results['slogan'] = slogan
+                query_results['website'] =  website
+                query_results['championship'] = championship
+                query_results['partipating_teams'] = partipating_teams
+                query_results['description'] = description
 
             #=========================
             # Entity type: SportsTeam
@@ -312,11 +314,11 @@ def execute_query(query, api_key):
                 date_founded = get_property_value(associated_json, '/sports/sports_team/founded', 'text')
                 
                 # Leagues
-                league_partipation = []
+                league_participation = []
                 try:
                     leagues = associated_json['property']['/sports/sports_team/league']['values']
                     for league in leagues:
-                        league_partipation.append(get_property_value(league, '/sports/sports_league_participation/league', 'text').encode('ascii', 'ignore'))
+                        league_participation.append(get_property_value(league, '/sports/sports_league_participation/league', 'text').encode('ascii', 'ignore'))
                 except:
                     pass
 
@@ -370,16 +372,17 @@ def execute_query(query, api_key):
                 # Description
                 description = get_property_value(associated_json, "/common/topic/description", 'value').encode('ascii', 'ignore')
 
-                print name
-                print sport
-                print arena
-                print championships
-                print date_founded
-                print league_partipation
-                print team_locations
-                print team_coaches
-                print team_roster
-                print description
+                query_results['name'] = name
+                query_results['sport'] = sport
+                query_results['arena'] = arena
+                query_results['championships'] = championships
+                query_results['date_founded'] = date_founded
+                query_results['league_participation'] = league_participation
+                query_results['team_locations'] = team_locations
+                query_results['team_coaches'] = team_coaches
+                query_results['team_roster'] = team_roster
+                query_results['description'] = description
+        return query_results
 
     else:
         print "ERROR: No relevant queries returned."
@@ -452,6 +455,29 @@ def execute_question_query(query, api_key):
     else:
         print "ERROR: Invalid question given."
 
+def get_styled_string(string, length, centered, overflow):
+    string_length = len(string)
+    if(string_length > length):
+        if overflow == False:
+            return ' ' + string[0:length-6] + '...'
+        else:
+            newlined = ''
+            currentIndex = 0
+            while(currentIndex + length < string_length):
+                newlined += ' ' + string[currentIndex:currentIndex+length-4] + ' \n'
+                currentIndex += length-4
+            len_difference = length + currentIndex -string_length-3
+            newlined += ' ' + string[currentIndex:] + (' '*(len_difference)) + ''
+            return newlined
+    else:
+        if centered:
+            len_difference = length-string_length-2
+            return '' + (' '*(len_difference/2)) + string + (' '*(len_difference/2)) + ''
+        else:
+            len_difference = length-string_length-3
+            return ' ' + string + (' '*(len_difference)) + ''
+
+
 #==========================
 # Displays argument syntax
 #==========================
@@ -477,7 +503,45 @@ if len(sys.argv) == 7:
 
             # Infobox
             if mode == 'infobox':
-                execute_query(query, api_key)
+                query_results = execute_query(query, api_key)
+
+                query_title = query + '(' + ', '.join(query_results['relevant_entities']) +')'
+                print table_row
+                print '|' + get_styled_string(query_title, len(table_row), True, False) + '|'
+                print table_row
+                print '| Name:          ' + get_styled_string(query_results['name'], len(table_row)-17, False, False).replace('\n', ' |\n|                ') + ' |'
+                print table_row
+                print '| Birthday:      ' + get_styled_string(query_results['dob'], len(table_row)-17,  False, False).replace('\n', ' |\n|                ') + ' |'
+                print table_row
+                print '| Place of Birth:' + get_styled_string(query_results['pob'], len(table_row)-17,  False, False).replace('\n', ' |\n|                ') + ' |'
+                print table_row
+                print '| Descriptions:  ' + get_styled_string(query_results['description'].replace('\n', ' '), len(table_row)-16,  False, True).replace('\n', '|\n|                ') + '|'
+                print table_row
+                print '| Siblings:      ' + get_styled_string(', '.join(query_results['sibling_names']), len(table_row)-17,  False, False).replace('\n', ' |\n|                ') + ' |'
+                print table_row
+                print '| Spouses:       ' + get_styled_string(', '.join(query_results['spouse_details']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+                print table_row
+                print '| Books:         ' + get_styled_string(', '.join(query_results['books_written']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+                print table_row
+                print '| Books About:   ' + get_styled_string(', '.join(query_results['books_about']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+                print table_row
+                print '| Influenced:    ' + get_styled_string(', '.join(query_results['influenced']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+                print table_row
+                print '| Founded:       ' + get_styled_string(', '.join(query_results['organizations_founded']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+                print table_row
+                print '| Leadership:    |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 22, True, False) + '|'
+                print '|                ----------------------------------------------------------------------------------'
+                for leadership_role in query_results['leadership_roles']:
+                    print '|                |' + get_styled_string(leadership_role['organization'], 25, False, False) + ' |' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
+                print table_row
+                print '| Board Member:  |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 22, True, False) + '|'
+                print '|                ----------------------------------------------------------------------------------'
+                for leadership_role in query_results['board_membership']:
+                    print '|                |' + get_styled_string(leadership_role['organization'], 25, False, False) + ' |' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
+                print table_row
+                #if('Person' in query_results['relevant_entities']):
+
+
 
             # Question
             elif mode == 'question':
