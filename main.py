@@ -509,7 +509,7 @@ if len(sys.argv) == 7:
                 print table_row
                 print '|' + get_styled_string(query_title, len(table_row), True, False) + '|'
                 print table_row
-                print '| Name:          ' + get_styled_string(query_results['name'], len(table_row)-17, False, False).replace('\n', ' |\n|                ') + ' |'
+                print '| Name:          ' + get_styled_string(query_results.get('name'), len(table_row)-17, False, False).replace('\n', ' |\n|                ') + ' |'
                 print table_row
                 print '| Birthday:      ' + get_styled_string(query_results['dob'], len(table_row)-17,  False, False).replace('\n', ' |\n|                ') + ' |'
                 print table_row
@@ -529,17 +529,22 @@ if len(sys.argv) == 7:
                 print table_row
                 print '| Founded:       ' + get_styled_string(', '.join(query_results['organizations_founded']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
                 print table_row
-                print '| Leadership:    |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 22, True, False) + '|'
-                print '|                ----------------------------------------------------------------------------------'
-                for leadership_role in query_results['leadership_roles']:
-                    print '|                |' + get_styled_string(leadership_role['organization'], 25, False, False) + ' |' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
-                print table_row
-                print '| Board Member:  |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 22, True, False) + '|'
-                print '|                ----------------------------------------------------------------------------------'
-                for leadership_role in query_results['board_membership']:
-                    print '|                |' + get_styled_string(leadership_role['organization'], 25, False, False) + ' |' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
-                print table_row
-                #if('Person' in query_results['relevant_entities']):
+
+                leadership_roles = query_results.get('leadership_roles')
+                if leadership_roles:
+                    print '| Leadership:    |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 22, True, False) + '|'
+                    print '|                ----------------------------------------------------------------------------------'
+                    for leadership_role in leadership_roles:
+                        print '|                |' + get_styled_string(leadership_role['organization'], 25, False, False) + ' |' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
+                    print table_row
+                board_membership = query_results.get('board_membership')
+                if board_membership:
+                    print '| Board Member:  |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 22, True, False) + '|'
+                    print '|                ----------------------------------------------------------------------------------'
+                    for leadership_role in board_membership:
+                        print '|                |' + get_styled_string(leadership_role['organization'], 25, False, False) + ' |' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
+                    print table_row
+                    #if('Person' in query_results['relevant_entities']):
 
 
 
