@@ -2,10 +2,6 @@ import json
 import urllib
 import sys
 
-###########################################
-# AIzaSyAbDNBtuCvq3YkvcK4xaUrqnTtaBTMl-4M
-###########################################
-
 search_api_url   = 'https://www.googleapis.com/freebase/v1/search'
 topic_api_url    = 'https://www.googleapis.com/freebase/v1/topic'
 question_api_url = 'https://www.googleapis.com/freebase/v1/mqlread?query='
@@ -29,6 +25,15 @@ relevant_question_topics = {
 
 table_row = ' -------------------------------------------------------------------------------------------------- '
 
+#=================================================================================
+# Helper function that returns value of given property parsed from JSON structure
+#=================================================================================
+def get_property_value(json, prop, val):
+    try:
+        return json['property'][prop]['values'][0][val]
+    except:
+        return ""
+
 #================================================================================
 # Queries Freebase Search API and returns node and type information of given mid
 #================================================================================
@@ -47,15 +52,6 @@ def relevant_mid(mid):
             relevant_entities.append(relevant_topics[type_id])
 
     return mid_response, set(relevant_types), set(relevant_entities)
-
-#============================================================
-# Returns value of given property parsed from JSON structure
-#============================================================
-def get_property_value(json, prop, val):
-    try:
-        return json['property'][prop]['values'][0][val]
-    except:
-        return ""
 
 #==========================================================================
 # Queries Freebase Topic API and returns infobox about top relevant result
@@ -96,15 +92,17 @@ def execute_query(query, api_key):
                 person_dob            = get_property_value(associated_json, '/people/person/date_of_birth', 'text')
                 person_pob            = get_property_value(associated_json, '/people/person/place_of_birth', 'text')
                 person_date_of_death  = get_property_value(associated_json, '/people/deceased_person/date_of_death', 'text')
-                #person_cause_of_death = get_property_value(associated_json, '/people/deceased_person/cause_of_death', 'text')
+                person_cause_of_death = get_property_value(associated_json, '/people/deceased_person/cause_of_death', 'text')
                 person_place_of_death = get_property_value(associated_json, '/people/deceased_person/place_of_death', 'text')
 
-                person_causes_of_death = []
-                causes = associated_json['property']['/people/deceased_person/cause_of_death']['values']
-                for cause in causes:
-                    person_causes_of_death.append(cause['text'])
-
-                person_death = (person_date_of_death + ' at ' + person_place_of_death + (', cause: (' + ', '.join(person_causes_of_death) + ')' if person_causes_of_death else '') if person_date_of_death else '')
+                if person_date_of_death:
+                    person_causes_of_death = []
+                    causes = associated_json['property']['/people/deceased_person/cause_of_death']['values']
+                    for cause in causes:
+                       person_causes_of_death.append(cause['text'])
+                    person_death = (person_date_of_death + ' at ' + person_place_of_death + (', cause: (' + ', '.join(person_causes_of_death) + ')' if person_causes_of_death else '') if person_date_of_death else '')
+                else:
+                    person_death = ''
 
                 # Siblings
                 sibling_names = []
@@ -447,9 +445,9 @@ def execute_question_query(query, api_key):
 
         answers = []
         for key, value in authors.iteritems():
-            answers.append(key + " (as Author) created " + ' and '.join('<{0}>'.format(w) for w in value))
+            answers.append(key + " (as Author) created " + ', '.join('<{0}>'.format(w) for w in value))
         for key, value in founders.iteritems():
-            answers.append(key + " (as BusinessPerson) created " + ' and '.join('<{0}>'.format(w) for w in value))
+            answers.append(key + " (as BusinessPerson) created " + ', '.join('<{0}>'.format(w) for w in value))
         answers.sort()
 
         if answers:
@@ -496,6 +494,7 @@ def get_styled_string(string, length, centered, overflow):
 #====================================================
 def render_infobox(query_results):
     # Person
+    print '\n'
     if 'Person' in query_results['relevant_entities']:
         query_title = query_results['name'] + '(' + ', '.join(query_results['relevant_entities']) +')'
         print table_row
@@ -516,59 +515,59 @@ def render_infobox(query_results):
             print '| Descriptions:  ' + get_styled_string(query_results['description'].replace('\n', ' '), len(table_row)-16,  False, True).replace('\n', '|\n|                ') + '|'
         if query_results['sibling_names']:
             print table_row
-            print '| Siblings:      ' + get_styled_string(', '.join(query_results['sibling_names']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            print '| Siblings:      ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['sibling_names']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
         if query_results['spouse_details']:
             print table_row
-            print '| Spouses:       ' + get_styled_string(', '.join(query_results['spouse_details']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            print '| Spouses:       ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['spouse_details']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
 
-    # Author
-    if 'Author' in query_results['relevant_entities']:
-        if query_results['books_written']:
-            print table_row
-            print '| Books:         ' + get_styled_string(', '.join(query_results['books_written']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['influenced_by']:
-            print table_row
-            print '| Influenced By: ' + get_styled_string(', '.join(query_results['influenced_by']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['books_about']:
-            print table_row
-            print '| Books About:   ' + get_styled_string(', '.join(query_results['books_about']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['influenced']:
-            print table_row
-            print '| Influenced:    ' + get_styled_string(', '.join(query_results['influenced']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        
-    # Actor
-    if 'Actor' in query_results['relevant_entities']:
-        films = query_results.get('films_participated')
-        if films:
-            print table_row
-            print '| Films:         |' + get_styled_string('Character', 42, True, False) + '|' +  get_styled_string('Film Name', 42, True, False) + '|'
-            print '|                ----------------------------------------------------------------------------------'
-            for film in films:
-                print '|                |' + get_styled_string(film['character'], 42, False, False) + '|' + get_styled_string(film['film_name'], 42, False, False) + '|'
+        # Author
+        if 'Author' in query_results['relevant_entities']:
+            if query_results['books_written']:
+                print table_row
+                print '| Books:         ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['books_written']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            if query_results['influenced_by']:
+                print table_row
+                print '| Influenced By: ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['influenced_by']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            if query_results['books_about']:
+                print table_row
+                print '| Books About:   ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['books_about']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            if query_results['influenced']:
+                print table_row
+                print '| Influenced:    ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['influenced']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            
+        # Actor
+        if 'Actor' in query_results['relevant_entities']:
+            films = query_results.get('films_participated')
+            if films:
+                print table_row
+                print '| Films:         |' + get_styled_string('Character', 42, True, False) + '|' +  get_styled_string('Film Name', 42, True, False) + '|'
+                print '|                ----------------------------------------------------------------------------------'
+                for film in films:
+                    print '|                |' + get_styled_string(film['character'], 42, False, False) + '|' + get_styled_string(film['film_name'], 42, False, False) + '|'
 
-    # BusinessPerson
-    if 'BusinessPerson' in query_results['relevant_entities']:
-        print table_row
-        print '| Founded:       ' + get_styled_string(', '.join(query_results['organizations_founded']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+        # BusinessPerson
+        if 'BusinessPerson' in query_results['relevant_entities']:
+            print table_row
+            print '| Founded:       ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['organizations_founded']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
 
-        leadership_roles = query_results.get('leadership_roles')
-        if leadership_roles:
-            print table_row
-            print '| Leadership:    |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 21, True, False) + '|'
-            print '|                ----------------------------------------------------------------------------------'
-            for leadership_role in leadership_roles:
-                print '|                |' + get_styled_string(leadership_role['organization'], 26, False, False) + '|' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
-        board_membership = query_results.get('board_membership')
-        if board_membership:
-            print table_row
-            print '| Board Member:  |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 21, True, False) + '|'
-            print '|                ----------------------------------------------------------------------------------'
-            for leadership_role in board_membership:
-                print '|                |' + get_styled_string(leadership_role['organization'], 26, False, False) + '|' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
+            leadership_roles = query_results.get('leadership_roles')
+            if leadership_roles:
+                print table_row
+                print '| Leadership:    |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 21, True, False) + '|'
+                print '|                ----------------------------------------------------------------------------------'
+                for leadership_role in leadership_roles:
+                    print '|                |' + get_styled_string(leadership_role['organization'], 26, False, False) + '|' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
+            board_membership = query_results.get('board_membership')
+            if board_membership:
+                print table_row
+                print '| Board Member:  |' + get_styled_string('Organization', 26, True, False) + '|' +  get_styled_string('Role', 18, True, False) + '|' + get_styled_string('Title', 21, True, False) + '|' + get_styled_string('From-To', 21, True, False) + '|'
+                print '|                ----------------------------------------------------------------------------------'
+                for leadership_role in board_membership:
+                    print '|                |' + get_styled_string(leadership_role['organization'], 26, False, False) + '|' +  get_styled_string(leadership_role['role'], 18, False, False) + '|' + get_styled_string(leadership_role['title'], 21, False, False) + '|' + get_styled_string(leadership_role['dates'], 21, False, False) + '|'
 
     # League
     if 'League' in query_results['relevant_entities']:
-        query_title = query_results['name'] + '(' + ', '.join(query_results['relevant_entities']) +')'
+        query_title = query_results['name'] + '(League)'
         print table_row
         print '|' + get_styled_string(query_title, len(table_row), True, False) + '|'
         print table_row
@@ -588,14 +587,14 @@ def render_infobox(query_results):
             print '| Championship:  ' + get_styled_string(query_results['championship'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
         if query_results['participating_teams']:
             print table_row
-            print '| Teams:         ' + get_styled_string(', '.join(query_results['participating_teams']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            print '| Teams:         ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['participating_teams']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
         if query_results['description']:
             print table_row
             print '| Descriptions:  ' + get_styled_string(query_results['description'].replace('\n', ' '), len(table_row)-16,  False, True).replace('\n', '|\n|                ') + '|'
 
     # SportsTeam
     if 'SportsTeam' in query_results['relevant_entities']:
-        query_title = query_results['name'] + '(' + ', '.join(query_results['relevant_entities']) +')'
+        query_title = query_results['name'] + '(SportsTeam)'
         print table_row
         print '|' + get_styled_string(query_title, len(table_row), True, False) + '|'
         print table_row
@@ -609,16 +608,16 @@ def render_infobox(query_results):
             print '| Arena:         ' + get_styled_string(query_results['arena'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
         if query_results['championships']:
             print table_row
-            print '| Championships: ' + get_styled_string(', '.join(query_results['championships']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            print '| Championships: ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['championships']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
         if query_results['date_founded']:
             print table_row
             print '| Founded:       ' + get_styled_string(query_results['date_founded'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
         if query_results['league_participation']:
             print table_row
-            print '| Leagues:       ' + get_styled_string(', '.join(query_results['league_participation']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            print '| Leagues:       ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['league_participation']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
         if query_results['team_locations']:
             print table_row
-            print '| Locations:     ' + get_styled_string(', '.join(query_results['team_locations']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
+            print '| Locations:     ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['team_locations']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
 
         coaches = query_results.get('team_coaches')
         if coaches:
@@ -641,6 +640,7 @@ def render_infobox(query_results):
             print table_row
             print '| Description:   ' + get_styled_string(query_results['description'].replace('\n', ' '), len(table_row)-16,  False, True).replace('\n', '|\n|                ') + '|'
     print table_row
+    print '\n'
 
 #==========================
 # Displays argument syntax
