@@ -67,6 +67,10 @@ def execute_query(query, api_key):
     #=================================
     # Determine first relevant entity
     #=================================
+
+    if response.get('result') == None:
+        return None
+
     for result in response['result']:
         current_mid = result['mid']
         temp = relevant_mid(current_mid)
@@ -415,7 +419,7 @@ def execute_question_query(query, api_key):
         question_url = question_api_url + str(query_author)
         response = json.loads(urllib.urlopen(question_url.replace("'", '"')).read())
 
-        for element in response["result"]:
+        for element in response.get("result"):
             author = element["name"][0].encode('ascii', 'ignore')
             titles = []
             for title in element["/book/author/works_written"]:
@@ -436,7 +440,7 @@ def execute_question_query(query, api_key):
         question_url = question_api_url + str(query_organization)
         response = json.loads(urllib.urlopen(question_url.replace("'", '"')).read())
 
-        for element in response["result"]:
+        for element in response.get("result"):
             founder = element["name"][0].encode('ascii', 'ignore')
             organizations = []
             for title in element["/organization/organization_founder/organizations_founded"]:
@@ -500,38 +504,38 @@ def render_infobox(query_results):
         print table_row
         print '|' + get_styled_string(query_title, len(table_row), True, False) + '|'
         print table_row
-        print '| Name:          ' + get_styled_string(query_results['name'], len(table_row)-17, False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['dob']:
+        exec "try: print '| Name:          ' + get_styled_string(query_results['name'], len(table_row)-17, False, True).replace('\\n', ' |\\n|                ') + ' |'\nexcept: print ''"
+        if query_results.get('dob'):
             print table_row
             print '| Birthday:      ' + get_styled_string(query_results['dob'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['death']:
+        if query_results.get('death'):
             print table_row
             print '| Death:         ' + get_styled_string(query_results['death'], len(table_row)-17, False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['pob']:
+        if query_results.get('pob'):
             print table_row
             print '| Place of Birth:' + get_styled_string(query_results['pob'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['description']:
+        if query_results.get('description'):
             print table_row
             print '| Descriptions:  ' + get_styled_string(query_results['description'].replace('\n', ' '), len(table_row)-16,  False, True).replace('\n', '|\n|                ') + '|'
-        if query_results['sibling_names']:
+        if query_results.get('sibling_names'):
             print table_row
             print '| Siblings:      ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['sibling_names']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['spouse_details']:
+        if query_results.get('spouse_details'):
             print table_row
             print '| Spouses:       ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['spouse_details']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
 
         # Author
         if 'Author' in query_results['relevant_entities']:
-            if query_results['books_written']:
+            if query_results.get('books_written'):
                 print table_row
                 print '| Books:         ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['books_written']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-            if query_results['influenced_by']:
+            if query_results.get('influenced_by'):
                 print table_row
                 print '| Influenced By: ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['influenced_by']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-            if query_results['books_about']:
+            if query_results.get('books_about'):
                 print table_row
                 print '| Books About:   ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['books_about']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-            if query_results['influenced']:
+            if query_results.get('influenced'):
                 print table_row
                 print '| Influenced:    ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['influenced']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
             
@@ -573,22 +577,22 @@ def render_infobox(query_results):
         print table_row
         print '| Name:          ' + get_styled_string(query_results['name'], len(table_row)-17, False, True).replace('\n', ' |\n|                ') + ' |'
 
-        if query_results['sport']:
+        if query_results.get('sport'):
             print table_row
             print '| Sport:         ' + get_styled_string(query_results['sport'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['slogan']:
+        if query_results.get('slogan'):
             print table_row
             print '| Slogan:        ' + get_styled_string(query_results['slogan'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['website']:
+        if query_results.get('website'):
             print table_row
             print '| Website:       ' + get_styled_string(query_results['website'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['sport']:
+        if query_results.get('championship'):
             print table_row
             print '| Championship:  ' + get_styled_string(query_results['championship'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['participating_teams']:
+        if query_results.get('participating_teams'):
             print table_row
             print '| Teams:         ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['participating_teams']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['description']:
+        if query_results.get('description'):
             print table_row
             print '| Descriptions:  ' + get_styled_string(query_results['description'].replace('\n', ' '), len(table_row)-16,  False, True).replace('\n', '|\n|                ') + '|'
 
@@ -600,22 +604,22 @@ def render_infobox(query_results):
         print table_row
         print '| Name:          ' + get_styled_string(query_results['name'], len(table_row)-17, False, True).replace('\n', ' |\n|                ') + ' |'
 
-        if query_results['sport']:
+        if query_results.get('sport'):
             print table_row
             print '| Sport:         ' + get_styled_string(query_results['sport'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['arena']:
+        if query_results.get('arena'):
             print table_row
             print '| Arena:         ' + get_styled_string(query_results['arena'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['championships']:
+        if query_results.get('championships'):
             print table_row
             print '| Championships: ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['championships']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['date_founded']:
+        if query_results.get('date_founded'):
             print table_row
             print '| Founded:       ' + get_styled_string(query_results['date_founded'], len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['league_participation']:
+        if query_results.get('league_participation'):
             print table_row
             print '| Leagues:       ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['league_participation']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
-        if query_results['team_locations']:
+        if query_results.get('team_locations'):
             print table_row
             print '| Locations:     ' + get_styled_string(', '.join('<{0}>'.format(w) for w in query_results['team_locations']), len(table_row)-17,  False, True).replace('\n', ' |\n|                ') + ' |'
 
@@ -636,7 +640,7 @@ def render_infobox(query_results):
                 positions = ', '.join(player['position'])
                 print '|                |' + get_styled_string(player['name'], 24, False, False) + '|' +  get_styled_string(positions, 26, False, False) + '|' + get_styled_string(player['number'], 12, False, False) + '|' + get_styled_string(player['date'], 24, False, False) + '|'
 
-        if query_results['description']:
+        if query_results.get('description'):
             print table_row
             print '| Description:   ' + get_styled_string(query_results['description'].replace('\n', ' '), len(table_row)-16,  False, True).replace('\n', '|\n|                ') + '|'
     print table_row
@@ -649,7 +653,6 @@ def show_usage():
     print "\nUsage:"
     print "\t1. -key <api_key> -q <query> -t [infobox|question]"
     print "\t2. -key <api_key> -f <file>  -t [infobox|question]"
-    print "\t3. -key <api_key>"
 
 #====================
 # Main program logic
@@ -686,9 +689,10 @@ if len(sys.argv) == 7:
                 # Infobox
                 if mode == 'infobox':
                     for query in f:
-                        query_results = execute_query(query, api_key)
-                        if query_results:
-                            render_infobox(query_results)
+                        if query != '\n':
+                            query_results = execute_query(query, api_key)
+                            if query_results:
+                                render_infobox(query_results)
 
                 # Question
                 else:

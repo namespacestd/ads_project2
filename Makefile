@@ -2,5 +2,5 @@
 
 all: run
 
-run: main.py
-	python main.py
+run: main.py run.sh
+	./run.sh
